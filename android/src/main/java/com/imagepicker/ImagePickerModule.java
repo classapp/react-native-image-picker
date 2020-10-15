@@ -387,9 +387,18 @@ public class ImagePickerModule extends ReactContextBaseJavaModule
 
   @Override
   public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
+
+    /* Receive flags */
+    boolean copyTo = false;
+    ReadableMap storageOptions = null;
+    if (ReadableMapUtils.hasAndNotNullReadableMap(options, "storageOptions")) {
+        storageOptions = options.getMap("storageOptions");
+
+        if (storageOptions.hasKey("copyTo")) copyTo = true;
+    }
+
     //robustness code
-    if (passResult(requestCode))
-    {
+    if (passResult(requestCode)) {
       return;
     }
 
@@ -464,6 +473,7 @@ public class ImagePickerModule extends ReactContextBaseJavaModule
       return;
     }
 
+    /* Resizing flag */
     BitmapFactory.Options options = new BitmapFactory.Options();
     options.inJustDecodeBounds = true;
     BitmapFactory.decodeFile(imageConfig.original.getAbsolutePath(), options);
@@ -498,6 +508,12 @@ public class ImagePickerModule extends ReactContextBaseJavaModule
       }
     }
 
+    /* Copying flag */
+    if(copyTo) {
+      copyTo(reactContext, imageConfig, storageOptions.getString("copyTo"));
+    }
+
+    /* Camera roll flag */
     if (imageConfig.saveToCameraRoll && requestCode == REQUEST_LAUNCH_IMAGE_CAPTURE)
     {
       final RolloutPhotoResult rolloutResult = rolloutPhotoFromCamera(imageConfig);

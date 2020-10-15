@@ -23,6 +23,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.channels.FileChannel;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -73,6 +75,7 @@ public class MediaUtils
             {
                 path = new File(path, storageOptions.getString("path"));
             }
+            
         }
         else if (forceLocal)
         {
@@ -355,6 +358,29 @@ public class MediaUtils
         return result;
     }
 
+    /* Copy files interface/middleware */
+    public static @Nullable RolloutPhotoResult copyTo(@NonNull final Context reactContext, @NonNull final ImageConfig imageConfig, String des)
+    {
+         
+        RolloutPhotoResult result = null;
+        final File oldFile = imageConfig.resized == null ? imageConfig.original: imageConfig.resized;
+        
+        final File newDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/" + des);;
+        final File newFile = new File(newDir.getPath(), oldFile.getName());
+
+        try
+        {   
+            copyFile(oldFile, newFile);
+            result = new RolloutPhotoResult(imageConfig, null);
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+            result = new RolloutPhotoResult(imageConfig, e);
+        }
+        return result;
+    }
+
     /**
      * Move a file from one location to another.
      *
@@ -386,6 +412,32 @@ public class MediaUtils
             {
                 e.printStackTrace();
             }
+        }
+    }
+
+    /* Copy files in fact */
+    private static void copyFile(@NonNull final File oldFile,
+                                 @NonNull final File newFile) throws IOException
+    {
+        InputStream in = new FileInputStream(oldFile);
+        try {
+            OutputStream out = new FileOutputStream(newFile);
+            try {
+                // Transfer bytes from in to out
+                byte[] buf = new byte[1024];
+                int len;
+                while ((len = in.read(buf)) > 0) {
+                    out.write(buf, 0, len);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }  finally {
+                out.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            in.close();
         }
     }
 
