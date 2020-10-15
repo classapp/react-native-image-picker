@@ -60,6 +60,7 @@ export interface ImagePickerStorageOptions {
   cameraRoll?: boolean;
   waitUntilSaved?: boolean;
   privateDirectory?: boolean;
+  copyTo?: string;
 }
 
 export interface ImagePickerPermissionDeniedOptions {
