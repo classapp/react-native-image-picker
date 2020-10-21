@@ -255,15 +255,24 @@ public class MediaUtils
         {
             return;
         }
-        MediaScannerConnection.scanFile(reactContext,
-                new String[] { path }, null,
-                new MediaScannerConnection.OnScanCompletedListener()
-                {
-                    public void onScanCompleted(String path, Uri uri)
-                    {
-                        Log.i("TAG", new StringBuilder("Finished scanning ").append(path).toString());
-                    }
-                });
+
+        /* New Method to scan */
+        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        File f = new File(path);
+        Uri contentUri = Uri.fromFile(f);
+        mediaScanIntent.setData(contentUri);
+        reactContext.sendBroadcast(mediaScanIntent);
+
+        /* Oldmethod for scan */
+        // MediaScannerConnection.scanFile(reactContext,
+        //     new String[] { path }, null,
+        //     new MediaScannerConnection.OnScanCompletedListener()
+        //     {
+        //         public void onScanCompleted(String path, Uri uri)
+        //         {
+        //             Log.i("TAG", new StringBuilder("Finished scanning ").append(path).toString());
+        //         }
+        // });
     }
 
     public static ReadExifResult readExifInterface(@NonNull ResponseHelper responseHelper,
@@ -371,6 +380,7 @@ public class MediaUtils
         try
         {   
             copyFile(oldFile, newFile);
+            fileScan(reactContext, newFile.getAbsolutePath());
             result = new RolloutPhotoResult(imageConfig, null);
         }
         catch (IOException e)
