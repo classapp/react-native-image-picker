@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import android.util.Log;
 import android.os.Build;
+import android.content.Intent;
 
 import com.facebook.react.bridge.ReadableMap;
 import com.imagepicker.ImagePickerModule;
