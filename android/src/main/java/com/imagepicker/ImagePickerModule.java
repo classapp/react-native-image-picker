@@ -391,7 +391,7 @@ public class ImagePickerModule extends ReactContextBaseJavaModule
     /* Receive flags */
     boolean copyTo = false;
     ReadableMap storageOptions = null;
-    if (ReadableMapUtils.hasAndNotNullReadableMap(options, "storageOptions")) {
+    if (options != null && ReadableMapUtils.hasAndNotNullReadableMap(options, "storageOptions")) {
         storageOptions = options.getMap("storageOptions");
 
         if (storageOptions.hasKey("copyTo")) copyTo = true;
