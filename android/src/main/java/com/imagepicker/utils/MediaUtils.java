@@ -1,5 +1,7 @@
 package com.imagepicker.utils;
 
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -13,6 +15,7 @@ import androidx.annotation.Nullable;
 import android.util.Log;
 import android.os.Build;
 import android.content.Intent;
+import android.provider.MediaStore;
 
 import com.facebook.react.bridge.ReadableMap;
 import com.imagepicker.ImagePickerModule;
@@ -258,22 +261,23 @@ public class MediaUtils
         }
 
         /* New Method to scan */
-        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        File f = new File(path);
-        Uri contentUri = Uri.fromFile(f);
-        mediaScanIntent.setData(contentUri);
-        reactContext.sendBroadcast(mediaScanIntent);
-
-        /* Oldmethod for scan */
-        // MediaScannerConnection.scanFile(reactContext,
-        //     new String[] { path }, null,
-        //     new MediaScannerConnection.OnScanCompletedListener()
-        //     {
-        //         public void onScanCompleted(String path, Uri uri)
-        //         {
-        //             Log.i("TAG", new StringBuilder("Finished scanning ").append(path).toString());
-        //         }
-        // });
+        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+             MediaScannerConnection.scanFile(reactContext,
+                new String[] { path }, null,
+                new MediaScannerConnection.OnScanCompletedListener()
+                {
+                    public void onScanCompleted(String path, Uri uri)
+                    {
+                        Log.i("TAG", new StringBuilder("Finished scanning ").append(path).toString());
+                    }
+            });
+        } else {
+            Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+            File f = new File(path);
+            Uri contentUri = Uri.fromFile(f);
+            mediaScanIntent.setData(contentUri);
+            reactContext.sendBroadcast(mediaScanIntent);
+        }
     }
 
     public static ReadExifResult readExifInterface(@NonNull ResponseHelper responseHelper,
@@ -368,27 +372,68 @@ public class MediaUtils
         return result;
     }
 
+    public static void saveToPublicDirectory(Uri uri, Context context) {
+        ContentResolver resolver = context.getContentResolver();
+        Uri mediaStoreUri;
+        ContentValues fileDetails = new ContentValues();
+
+        fileDetails.put(MediaStore.Images.Media.DISPLAY_NAME, UUID.randomUUID().toString());
+        mediaStoreUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, fileDetails);
+
+        copyUri(uri, mediaStoreUri, resolver);
+    }
+
+    public static void copyUri(Uri fromUri, Uri toUri, ContentResolver resolver) {
+        try {
+            OutputStream os = resolver.openOutputStream(toUri);
+            InputStream is = resolver.openInputStream(fromUri);
+
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+
+            while ((bytesRead = is.read(buffer)) != -1) {
+                os.write(buffer, 0, bytesRead);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     /* Copy files interface/middleware */
     public static @Nullable RolloutPhotoResult copyTo(@NonNull final Context reactContext, @NonNull final ImageConfig imageConfig, String des)
     {
          
         RolloutPhotoResult result = null;
+        File newDir = null;
         final File oldFile = imageConfig.resized == null ? imageConfig.original: imageConfig.resized;
         
-        final File newDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/" + des);;
-        final File newFile = new File(newDir.getPath(), oldFile.getName());
+        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            newDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM + "/" + des);
+            final File newFile = new File(newDir.getPath(), oldFile.getName());
+            try
+            {  
+                newDir.mkdirs();
+                copyFile(oldFile, newFile);
+                fileScan(reactContext, newFile.getAbsolutePath());
+                result = new RolloutPhotoResult(imageConfig, null);
+            }
+            catch (IOException e)
+            {
+                e.printStackTrace();
+            }
+        } else {
+            Uri newUri = Uri.fromFile(oldFile);
+            saveToPublicDirectory(newUri, reactContext);
+            // Uri imagesUri = MediaStore.Images.Media.getContentUri(MediaStore.EXTERNAL_CONTENT_URI);
 
-        try
-        {   
-            copyFile(oldFile, newFile);
-            fileScan(reactContext, newFile.getAbsolutePath());
-            result = new RolloutPhotoResult(imageConfig, null);
+            // newDir = reactContext.getExternalFilesDir(Environment.DIRECTORY_DCIM + "/" + des);
+            // System.out.println(newDir.getAbsolutePath());
         }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-            result = new RolloutPhotoResult(imageConfig, e);
-        }
+ 
+        
+
+        
         return result;
     }
 
